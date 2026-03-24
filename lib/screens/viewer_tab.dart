@@ -79,6 +79,31 @@ class _ViewerTabState extends State<ViewerTab> {
         return;
       }
 
+      // Convert parsed rows to PurchaseOrderItem objects
+      final items = parsedRows.map((rowData) => PurchaseOrderItem(
+        poDate: DateTime.parse(rowData['po_date'] as String),
+        poNumber: rowData['po_number'] as String,
+        vendorName: rowData['vendor_name'] as String,
+        projectName: rowData['project_name'] as String,
+        productName: rowData['product_name'] as String,
+        productQty: rowData['product_qty'] as int,
+        productQtyUnit: rowData['product_qty_unit'] as String,
+        productUnitPrice: rowData['product_unit_price'] as double,
+        productDiscountPct: rowData['product_discount_pct'] as double,
+        productFinalPrice: rowData['product_final_price'] as double,
+        createdAt: DateTime.now(),
+      )).toList();
+
+      // Insert items in batches of 100
+      const batchSize = 100;
+      int totalInserted = 0;
+      for (int i = 0; i < items.length; i += batchSize) {
+        final end = (i + batchSize < items.length) ? i + batchSize : items.length;
+        final batch = items.sublist(i, end);
+        final batchInserted = await _dbHelper.insertItems(batch);
+        totalInserted += batchInserted;
+      }
+
       final totalItems = await _dbHelper.countItems();
 
       setState(() {
@@ -88,7 +113,7 @@ class _ViewerTabState extends State<ViewerTab> {
       });
 
       _showSnackBar(
-        'Loaded sheet: ${loadedSheetName ?? 'unknown'} • Available: $totalItems items',
+        'Loaded sheet: ${loadedSheetName ?? 'unknown'} • Processed: ${parsedRows.length} items • Saved: $totalInserted items',
       );
     } catch (e) {
       setState(() {

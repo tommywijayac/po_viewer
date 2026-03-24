@@ -1,6 +1,5 @@
 class PurchaseOrderItem {
-  final int? id;
-  final DateTime? poDate;
+  final DateTime poDate;
   final String poNumber;
   final String vendorName;
   final String projectName;
@@ -13,8 +12,7 @@ class PurchaseOrderItem {
   final DateTime createdAt;
 
   PurchaseOrderItem({
-    this.id,
-    this.poDate,
+    required this.poDate,
     required this.poNumber,
     required this.vendorName,
     required this.projectName,
@@ -30,8 +28,7 @@ class PurchaseOrderItem {
   /// Convert PurchaseOrderItem to Map for database insertion
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'po_date': poDate?.toIso8601String(),
+      'po_date': poDate.toIso8601String(),
       'po_number': poNumber,
       'vendor_name': vendorName,
       'project_name': projectName,
@@ -48,8 +45,7 @@ class PurchaseOrderItem {
   /// Create PurchaseOrderItem from database Map
   factory PurchaseOrderItem.fromMap(Map<String, dynamic> map) {
     return PurchaseOrderItem(
-      id: map['id'] as int?,
-      poDate: map['po_date'] != null ? DateTime.parse(map['po_date'] as String) : null,
+      poDate: DateTime.parse(map['po_date'] as String),
       poNumber: map['po_number'] as String,
       vendorName: map['vendor_name'] as String,
       projectName: map['project_name'] as String,
@@ -68,9 +64,10 @@ class PurchaseOrderItem {
       identical(this, other) ||
       other is PurchaseOrderItem &&
           runtimeType == other.runtimeType &&
-          id == other.id &&
-          poNumber == other.poNumber;
+          poNumber == other.poNumber &&
+          vendorName == other.vendorName &&
+          productName == other.productName;
 
   @override
-  int get hashCode => id.hashCode ^ poNumber.hashCode;
+  int get hashCode => poNumber.hashCode ^ vendorName.hashCode ^ productName.hashCode;
 }

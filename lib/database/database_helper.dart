@@ -41,8 +41,7 @@ class DatabaseHelper {
   Future<void> _createDatabase(Database db, int version) async {
     await db.execute('''
       CREATE TABLE $_tableName (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        po_date TEXT,
+        po_date TEXT NOT NULL,
         po_number TEXT NOT NULL,
         vendor_name TEXT NOT NULL,
         project_name TEXT NOT NULL,
@@ -52,7 +51,8 @@ class DatabaseHelper {
         product_unit_price REAL NOT NULL,
         product_discount_pct REAL NOT NULL,
         product_final_price REAL NOT NULL,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        UNIQUE(po_number, vendor_name, product_name)
       )
     ''');
   }
@@ -63,28 +63,31 @@ class DatabaseHelper {
     return await db.insert(
       _tableName,
       item.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      conflictAlgorithm: ConflictAlgorithm.ignore,
     );
   }
 
   /// Bulk insert multiple items into the database
   /// Uses a transaction for better performance and atomicity
-  Future<List<int>> insertItems(List<PurchaseOrderItem> items) async {
+  /// Returns the number of items actually inserted (excluding conflicts)
+  Future<int> insertItems(List<PurchaseOrderItem> items) async {
     final db = await database;
-    final List<int> ids = [];
+    int insertedCount = 0;
 
     await db.transaction((txn) async {
       for (var item in items) {
         final id = await txn.insert(
           _tableName,
           item.toMap(),
-          conflictAlgorithm: ConflictAlgorithm.replace,
+          conflictAlgorithm: ConflictAlgorithm.ignore,
         );
-        ids.add(id);
+        if (id != -1) {
+          insertedCount++;
+        }
       }
     });
 
-    return ids;
+    return insertedCount;
   }
 
   /// Get all items from the database
