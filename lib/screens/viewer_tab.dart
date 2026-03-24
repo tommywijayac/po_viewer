@@ -62,7 +62,7 @@ class _ViewerTabState extends State<ViewerTab> {
           filteredData = []; // Clear previous search results
           isLoading = true;
         });
-        await loadExcelData();
+        await _loadExcelData();
       }
     } catch (e) {
       _showSnackBar('Error picking file: $e', type: SnackBarType.error);
@@ -109,7 +109,7 @@ class _ViewerTabState extends State<ViewerTab> {
     }
   }
 
-  Future<void> loadExcelData() async {
+  Future<void> _loadExcelData() async {
     try {
       if (selectedFile == null) return;
 
@@ -139,6 +139,7 @@ class _ViewerTabState extends State<ViewerTab> {
         productUnitPrice: rowData['product_unit_price'] as double,
         productDiscountPct: rowData['product_discount_pct'] as double,
         productFinalPrice: rowData['product_final_price'] as double,
+        category: rowData['category'] as String?,
         createdAt: DateTime.now(),
       )).toList();
 
@@ -404,6 +405,7 @@ Map<String, dynamic> _parseExcelInIsolate(
             final unit = row[7]?.value?.toString() ?? '';
             final priceStr = row[8]?.value?.toString() ?? '0';
             final discountStr = row[9]?.value?.toString() ?? '0';
+            final category = row[10]?.value?.toString() ?? ''; // PLACEHOLDER
             final finalPriceStr = row[11]?.value?.toString() ?? '0';
 
             if (poDate.isEmpty || vendor.isEmpty || product.isEmpty) {
@@ -421,6 +423,7 @@ Map<String, dynamic> _parseExcelInIsolate(
               'product_unit_price': double.tryParse(priceStr) ?? 0.0,
               'product_discount_pct': double.tryParse(discountStr) ?? 0.0,
               'product_final_price': double.tryParse(finalPriceStr) ?? 0.0,
+              'category': category,
             };
 
             rows.add(rowData);

@@ -73,6 +73,9 @@ class PurchaseOrderItemCard extends StatelessWidget {
                   children: [
                     _buildBadge(context, 'PO', item.poNumber, const Color(0xFFE6F1FB), const Color(0xFF0C447C)),
                     _buildBadge(context, 'Vendor', item.vendorName, const Color(0xFFE1F5EE), const Color(0xFF085041)),
+                    if (item.category != null && item.category!.isNotEmpty) ...[
+                      _buildBadge(context, 'Category', item.category!, const Color(0xFFFFF7E6), const Color(0xFF995A00)),
+                    ],
                   ],
                 ),
               ],

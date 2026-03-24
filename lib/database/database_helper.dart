@@ -52,6 +52,7 @@ class DatabaseHelper {
         product_discount_pct REAL NOT NULL,
         product_final_price REAL NOT NULL,
         created_at TEXT NOT NULL,
+        category TEXT,
         UNIQUE(po_number, vendor_name, product_name)
       )
     ''');

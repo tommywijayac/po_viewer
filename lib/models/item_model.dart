@@ -10,6 +10,7 @@ class PurchaseOrderItem {
   final double productDiscountPct;
   final double productFinalPrice;
   final DateTime createdAt;
+  final String? category;
 
   PurchaseOrderItem({
     required this.poDate,
@@ -23,6 +24,7 @@ class PurchaseOrderItem {
     required this.productDiscountPct,
     required this.productFinalPrice,
     required this.createdAt,
+    this.category,
   });
 
   /// Convert PurchaseOrderItem to Map for database insertion
@@ -39,6 +41,7 @@ class PurchaseOrderItem {
       'product_discount_pct': productDiscountPct,
       'product_final_price': productFinalPrice,
       'created_at': createdAt.toIso8601String(),
+      'category': category,
     };
   }
 
@@ -56,6 +59,7 @@ class PurchaseOrderItem {
       productDiscountPct: (map['product_discount_pct'] as num).toDouble(),
       productFinalPrice: (map['product_final_price'] as num).toDouble(),
       createdAt: DateTime.parse(map['created_at'] as String),
+      category: map['category'] as String?,
     );
   }
 
