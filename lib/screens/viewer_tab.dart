@@ -10,6 +10,8 @@ import '../database/database_helper.dart';
 import '../database/memory_store.dart';
 import '../widgets/purchase_order_item_card.dart';
 
+enum SnackBarType { info, warning, error }
+
 class ViewerTab extends StatefulWidget {
   const ViewerTab({super.key});
 
@@ -27,14 +29,23 @@ class _ViewerTabState extends State<ViewerTab> {
   PurchaseOrderItem? selectedItem;
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  void _showSnackBar(String message) {
+  void _showSnackBar(String message, {SnackBarType type = SnackBarType.info}) {
     if (mounted) {
-      // Use this.context to ensure we're getting the State's context, not the excel Context
+      final color = switch (type) {
+        SnackBarType.info  => Colors.blue,
+        SnackBarType.warning => Colors.orange,
+        SnackBarType.error => Colors.red,
+      };
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(
+          content: Text(message),
+          backgroundColor: color,
+        ),
       );
     }
   }
+
 
   Future<void> pickExcelFile() async {
     try {
@@ -54,7 +65,7 @@ class _ViewerTabState extends State<ViewerTab> {
         await loadExcelData();
       }
     } catch (e) {
-      _showSnackBar('Error picking file: $e');
+      _showSnackBar('Error picking file: $e', type: SnackBarType.error);
     }
   }
 
@@ -69,7 +80,7 @@ class _ViewerTabState extends State<ViewerTab> {
       final loadedSheetName = result['sheetName'] as String?;
 
       if (parsedRows.isEmpty) {
-        _showSnackBar('No data found in first sheet');
+        _showSnackBar('No data found in first sheet', type: SnackBarType.warning);
         setState(() {
           isLoading = false;
         });
@@ -116,7 +127,7 @@ class _ViewerTabState extends State<ViewerTab> {
       setState(() {
         isLoading = false;
       });
-      _showSnackBar('Error loading Excel file: $e');
+      _showSnackBar('Error loading Excel file: $e', type: SnackBarType.error);
     }
   }
 
@@ -134,13 +145,17 @@ class _ViewerTabState extends State<ViewerTab> {
 
   Future<void> saveSelectedItem() async {
     if (selectedItem == null) {
-      _showSnackBar('Please select an item to save');
+      _showSnackBar('Please select an item to save', type: SnackBarType.warning);
       return;
     }
 
     try {
-      await _dbHelper.insertItem(selectedItem!);
-      MemoryStore.addItem(selectedItem!);
+      final added = MemoryStore.addItem(selectedItem!);
+
+      if (!added) {
+        _showSnackBar('Item already exists in saved list', type: SnackBarType.warning);
+        return;
+      }
 
       if (mounted) {
         _showSnackBar('Saved: ${selectedItem!.productName}');
@@ -149,7 +164,7 @@ class _ViewerTabState extends State<ViewerTab> {
         });
       }
     } catch (e) {
-      _showSnackBar('Error saving item: $e');
+      _showSnackBar('Error saving item: $e', type: SnackBarType.error);
     }
   }
 
