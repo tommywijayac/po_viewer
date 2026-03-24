@@ -144,7 +144,9 @@ class PurchaseOrderItemCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label ', style: const TextStyle(fontSize: 10.0, fontWeight: FontWeight.bold, letterSpacing: 0.4, color: Colors.black54)),
-          Text(value, style: TextStyle(fontSize: 12.0, color: textColor, fontWeight: FontWeight.w500)),
+          Flexible(
+            child: Text(value, style: TextStyle(fontSize: 12.0, color: textColor, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)
+          ),
         ],
       ),
     );
