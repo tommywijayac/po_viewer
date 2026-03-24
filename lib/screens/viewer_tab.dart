@@ -69,6 +69,46 @@ class _ViewerTabState extends State<ViewerTab> {
     }
   }
 
+  Future<void> _resetDatabase() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Data'),
+        content: const Text(
+          'Are you sure you want to reset the data? This will permanently delete all saved purchase order items and cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _dbHelper.deleteAllItems();
+        MemoryStore.clear();
+        setState(() {
+          selectedFile = null;
+          selectedItem = null;
+          searchController.clear();
+          filteredData = [];
+          totalItemsInDatabase = 0;
+        });
+        _showSnackBar('Database reset successfully', type: SnackBarType.info);
+      } catch (e) {
+        _showSnackBar('Error resetting database: $e', type: SnackBarType.error);
+      }
+    }
+  }
+
   Future<void> loadExcelData() async {
     try {
       if (selectedFile == null) return;
@@ -195,10 +235,24 @@ class _ViewerTabState extends State<ViewerTab> {
       children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton.icon(
-            onPressed: pickExcelFile,
-            icon: const Icon(Icons.folder_open),
-            label: const Text('Select Excel File'),
+          child: Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: pickExcelFile,
+                icon: const Icon(Icons.folder_open),
+                label: const Text('Select Excel File'),
+              ),
+              const SizedBox(width: 16.0),
+              ElevatedButton.icon(
+                onPressed: _resetDatabase,
+                icon: const Icon(Icons.delete_forever),
+                label: const Text('Reset Data'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
           ),
         ),
         if (isLoading)
