@@ -4,7 +4,7 @@ import 'package:excel/excel.dart' hide Border;
 import 'dart:io';
 import '../models/item_model.dart';
 import '../database/database_helper.dart';
-import 'package:intl/intl.dart';
+import '../widgets/purchase_order_item_card.dart';
 
 class ViewerTab extends StatefulWidget {
   const ViewerTab({super.key});
@@ -22,8 +22,6 @@ class _ViewerTabState extends State<ViewerTab> {
   PurchaseOrderItem? selectedItem;
   final DatabaseHelper _dbHelper = DatabaseHelper();
   bool isLoading = false;
-
-  late final NumberFormat _priceFormatter = NumberFormat('###,###.##', 'id_ID');
 
   Future<void> pickExcelFile() async {
     try {
@@ -290,54 +288,16 @@ class _ViewerTabState extends State<ViewerTab> {
               itemBuilder: (context, index) {
                 PurchaseOrderItem item = filteredData[index];
                 bool isSelected = selectedItem == item;
-                return GestureDetector(
+                return PurchaseOrderItemCard(
+                  item: item,
+                  isSelected: isSelected,
+                  cardStyle: CardStyle.compact,
+                  priceFormatter: RupiahPriceFormatter(),
                   onTap: () {
                     setState(() {
                       selectedItem = isSelected ? null : item;
                     });
                   },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 4.0,
-                    ),
-                    padding: const EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.blue.withAlpha(77) // 0.3 * 255
-                          : Colors.grey.withAlpha(26), // 0.1 * 255
-                      border: Border.all(
-                        color: isSelected ? Colors.blue : Colors.grey.shade300,
-                        width: isSelected ? 2 : 1,
-                      ),
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${item.productName} | PO: ${item.poNumber}',
-                          style: Theme.of(context).textTheme.titleSmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4.0),
-                        Text(
-                          'Vendor: ${item.vendorName} | Qty: ${item.productQty} ${item.productQtyUnit}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4.0),
-                        Text(
-                          'Unit Final Price: Rp${_priceFormatter.format(item.productFinalPrice)}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
                 );
               },
             ),
