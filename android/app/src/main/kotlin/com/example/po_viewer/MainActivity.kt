@@ -1,4 +1,4 @@
-package com.example.po_viewer
+package com.hazel.po_viewer
 
 import io.flutter.embedding.android.FlutterActivity
 
