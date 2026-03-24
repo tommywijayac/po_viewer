@@ -66,6 +66,26 @@ class DatabaseHelper {
     );
   }
 
+  /// Bulk insert multiple items into the database
+  /// Uses a transaction for better performance and atomicity
+  Future<List<int>> insertItems(List<PurchaseOrderItem> items) async {
+    final db = await database;
+    final List<int> ids = [];
+
+    await db.transaction((txn) async {
+      for (var item in items) {
+        final id = await txn.insert(
+          _tableName,
+          item.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+        ids.add(id);
+      }
+    });
+
+    return ids;
+  }
+
   /// Get all items from the database
   Future<List<PurchaseOrderItem>> getAllItems() async {
     final db = await database;
