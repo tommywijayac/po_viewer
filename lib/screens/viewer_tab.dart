@@ -21,12 +21,13 @@ class _ViewerTabState extends State<ViewerTab> {
   File? selectedFile;
   String? selectedFileName;
   String? loadedSheetName;
-  List<PurchaseOrderItem> excelData = [];
+  bool isLoading = false;
   final TextEditingController searchController = TextEditingController();
+  
+  int totalItemsInDatabase = 0;
   List<PurchaseOrderItem> filteredData = [];
   PurchaseOrderItem? selectedItem;
   final DatabaseHelper _dbHelper = DatabaseHelper();
-  bool isLoading = false;
 
   void _showSnackBar(String message) {
     if (mounted) {
@@ -50,6 +51,7 @@ class _ViewerTabState extends State<ViewerTab> {
           selectedFileName = result.files.single.name;
           selectedItem = null;
           searchController.clear();
+          filteredData = []; // Clear previous search results
           isLoading = true;
         });
         await loadExcelData();
@@ -77,38 +79,16 @@ class _ViewerTabState extends State<ViewerTab> {
         return;
       }
 
-      // Insert all rows into database on main thread
-      int insertedCount = 0;
-      for (var rowData in parsedRows) {
-        await _dbHelper.insertItem(
-          PurchaseOrderItem(
-            poDate: DateTime.tryParse(rowData['po_date'] as String),
-            poNumber: rowData['po_number'] as String,
-            vendorName: rowData['vendor_name'] as String,
-            projectName: rowData['project_name'] as String,
-            productName: rowData['product_name'] as String,
-            productQty: rowData['product_qty'] as int,
-            productQtyUnit: rowData['product_qty_unit'] as String,
-            productUnitPrice: rowData['product_unit_price'] as double,
-            productDiscountPct: rowData['product_discount_pct'] as double,
-            productFinalPrice: rowData['product_final_price'] as double,
-            createdAt: DateTime.now(),
-          ),
-        );
-        insertedCount++;
-      }
-
-      // Load all items from database for display
-      final displayItems = await _dbHelper.getAllItems();
+      final totalItems = await _dbHelper.countItems();
 
       setState(() {
-        excelData = displayItems;
-        filteredData = excelData;
+        totalItemsInDatabase = totalItems;
+        filteredData = []; // Start with empty filtered data
         isLoading = false;
       });
 
       _showSnackBar(
-        'Loaded sheet: ${loadedSheetName ?? 'unknown'} • Processed: ${parsedRows.length} items • Saved: $insertedCount items',
+        'Loaded sheet: ${loadedSheetName ?? 'unknown'} • Available: $totalItems items',
       );
     } catch (e) {
       setState(() {
@@ -118,20 +98,15 @@ class _ViewerTabState extends State<ViewerTab> {
     }
   }
 
-  void filterData(String query) {
+  void performSearch() async {
+    final query = searchController.text.trim();
+    final result = query.isEmpty
+        ? [].cast<PurchaseOrderItem>()
+        : await _dbHelper.searchItems(query.toLowerCase());
+
     setState(() {
-      if (query.isEmpty) {
-        filteredData = excelData;
-        selectedItem = null;
-      } else {
-        filteredData = excelData
-            .where((item) =>
-                item.productName.toLowerCase().contains(query.toLowerCase()) ||
-                item.vendorName.toLowerCase().contains(query.toLowerCase()) ||
-                item.poNumber.toLowerCase().contains(query.toLowerCase()))
-            .toList();
-        selectedItem = null;
-      }
+      filteredData = result;
+      selectedItem = null;
     });
   }
 
@@ -196,20 +171,31 @@ class _ViewerTabState extends State<ViewerTab> {
           ],
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by product, vendor, or PO number...',
-                prefixIcon: const Icon(Icons.search),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 12.0,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search by product, vendor, or PO number...',
+                      prefixIcon: const Icon(Icons.search),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 12.0,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
+                    onSubmitted: (_) => performSearch(),
+                  ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
+                const SizedBox(width: 8.0),
+                ElevatedButton(
+                  onPressed: performSearch,
+                  child: const Text('Search'),
                 ),
-              ),
-              onChanged: filterData,
+              ],
             ),
           ),
           const SizedBox(height: 12.0),
@@ -223,23 +209,60 @@ class _ViewerTabState extends State<ViewerTab> {
           ),
           const SizedBox(height: 12.0),
           Expanded(
-            child: ListView.builder(
-              itemCount: filteredData.length,
-              itemBuilder: (context, index) {
-                PurchaseOrderItem item = filteredData[index];
-                bool isSelected = selectedItem == item;
-                return PurchaseOrderItemCard(
-                  item: item,
-                  isSelected: isSelected,
-                  cardStyle: CardStyle.compact,
-                  priceFormatter: RupiahPriceFormatter(),
-                  onTap: () {
-                    setState(() {
-                      selectedItem = isSelected ? null : item;
-                    });
-                  },
-                );
-              },
+            child: Column(
+              children: [
+                if (filteredData.isEmpty)
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        totalItemsInDatabase == 0
+                            ? 'No items loaded'
+                            : 'Enter search term and click Search to view items',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filteredData.length,
+                      itemBuilder: (context, index) {
+                        PurchaseOrderItem item = filteredData[index];
+                        bool isSelected = selectedItem == item;
+                        return PurchaseOrderItemCard(
+                          item: item,
+                          isSelected: isSelected,
+                          cardStyle: CardStyle.compact,
+                          priceFormatter: RupiahPriceFormatter(),
+                          onTap: () {
+                            setState(() {
+                              selectedItem = isSelected ? null : item;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                // Status bar
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Available: $totalItemsInDatabase items',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      Text(
+                        filteredData.isEmpty ? 'No matching results' : 'Results: ${filteredData.length} items',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ] else

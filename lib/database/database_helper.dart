@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+
 import '../models/item_model.dart';
 
 class DatabaseHelper {
@@ -122,12 +123,20 @@ class DatabaseHelper {
       _tableName,
       where: 'product_name LIKE ? OR vendor_name LIKE ?',
       whereArgs: ['%$query%', '%$query%'],
-      orderBy: 'created_at DESC',
+      orderBy: 'po_date DESC',
     );
 
     return List.generate(maps.length, (i) {
       return PurchaseOrderItem.fromMap(maps[i]);
     });
+  }
+
+  /// Count all items in the database
+  Future<int> countItems() async {
+    final db = await database;
+    final countQuery = await db.rawQuery('SELECT COUNT(*) as count FROM $_tableName');
+    final count = Sqflite.firstIntValue(countQuery);
+    return count ?? 0;
   }
 
   /// Close database
