@@ -4,6 +4,8 @@ import '../models/item_model.dart';
 import '../database/memory_store.dart';
 import '../widgets/purchase_order_item_card.dart';
 
+enum SnackBarType { info, warning, error }
+
 class SavedTab extends StatefulWidget {
   const SavedTab({super.key});
 
@@ -25,21 +27,30 @@ class _SavedTabState extends State<SavedTab> {
     });
   }
 
+  void _showSnackBar(String message, {SnackBarType type = SnackBarType.info}) {
+    if (mounted) {
+      final color = switch (type) {
+        SnackBarType.info  => Colors.blue,
+        SnackBarType.warning => Colors.orange,
+        SnackBarType.error => Colors.red,
+      };
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: color,
+        ),
+      );
+    }
+  }
+
   Future<void> _removeItem(PurchaseOrderItem item) async {
     try {
       MemoryStore.removeItem(item);
       _loadItems();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Removed: ${item.productName}')),
-        );
-      }
+      _showSnackBar('Removed: ${item.productName}');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error removing item: $e')),
-        );
-      }
+      _showSnackBar('Error removing item: $e', type: SnackBarType.error);
     }
   }
 
@@ -47,17 +58,9 @@ class _SavedTabState extends State<SavedTab> {
     try {
       MemoryStore.clear();
       _loadItems();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All items removed')),
-        );
-      }
+      _showSnackBar('All items removed');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error removing items: $e')),
-        );
-      }
+      _showSnackBar('Error removing items: $e', type: SnackBarType.error);
     }
   }
 
@@ -112,7 +115,7 @@ class _SavedTabState extends State<SavedTab> {
                     final item = _items[index];
                     return PurchaseOrderItemCard(
                       item: item,
-                      cardStyle: CardStyle.detailed,
+                      cardStyle: CardStyle.styled,
                       priceFormatter: RupiahPriceFormatter(),
                       onTap: () {
                         // Could add functionality here if needed

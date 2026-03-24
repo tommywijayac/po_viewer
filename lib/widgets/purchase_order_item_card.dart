@@ -95,21 +95,38 @@ class PurchaseOrderItemCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Project', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10.0, color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
-                    const SizedBox(height: 2),
-                    Text(item.projectName, style: Theme.of(context).textTheme.bodyMedium),
-                  ],
+                // Wrap the left column
+                Expanded( 
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Project', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10.0, color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.projectName, 
+                        style: Theme.of(context).textTheme.bodyMedium, 
+                        maxLines: 1, 
+                        overflow: TextOverflow.ellipsis, // Now this will work!
+                      ),
+                    ],
+                  ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text('Final price', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10.0, color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
-                    const SizedBox(height: 2),
-                    Text(formattedFinalPrice, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500)),
-                  ],
+                const SizedBox(width: 16), // Add a little gap between the two columns
+                // Wrap the right column
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('Final price', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10.0, color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
+                      const SizedBox(height: 2),
+                      Text(
+                        formattedFinalPrice, 
+                        style: Theme.of(context).textTheme.bodyMedium, 
+                        maxLines: 1, 
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
