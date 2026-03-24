@@ -272,7 +272,7 @@ class _ViewerTabState extends State<ViewerTab> {
                         return PurchaseOrderItemCard(
                           item: item,
                           isSelected: isSelected,
-                          cardStyle: CardStyle.compact,
+                          cardStyle: CardStyle.styled,
                           priceFormatter: RupiahPriceFormatter(),
                           onTap: () {
                             setState(() {
