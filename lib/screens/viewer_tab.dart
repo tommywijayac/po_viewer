@@ -19,8 +19,6 @@ class ViewerTab extends StatefulWidget {
 
 class _ViewerTabState extends State<ViewerTab> {
   File? selectedFile;
-  String? selectedFileName;
-  String? loadedSheetName;
   bool isLoading = false;
   final TextEditingController searchController = TextEditingController();
   
@@ -48,7 +46,6 @@ class _ViewerTabState extends State<ViewerTab> {
       if (result != null) {
         setState(() {
           selectedFile = File(result.files.single.path!);
-          selectedFileName = result.files.single.name;
           selectedItem = null;
           searchController.clear();
           filteredData = []; // Clear previous search results
@@ -69,7 +66,7 @@ class _ViewerTabState extends State<ViewerTab> {
       final result = await compute(_parseExcelInIsolate, fileBytes);
 
       final parsedRows = result['rows'] as List<Map<String, dynamic>>;
-      loadedSheetName = result['sheetName'] as String?;
+      final loadedSheetName = result['sheetName'] as String?;
 
       if (parsedRows.isEmpty) {
         _showSnackBar('No data found in first sheet');
@@ -136,7 +133,7 @@ class _ViewerTabState extends State<ViewerTab> {
   }
 
   Future<void> saveSelectedItem() async {
-    if (selectedItem == null || selectedFileName == null) {
+    if (selectedItem == null) {
       _showSnackBar('Please select an item to save');
       return;
     }
@@ -163,6 +160,21 @@ class _ViewerTabState extends State<ViewerTab> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _checkDatabaseItems();
+  }
+
+  Future<void> _checkDatabaseItems() async {
+    final totalItems = await _dbHelper.countItems();
+    if (mounted) {
+      setState(() {
+        totalItemsInDatabase = totalItems;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       children: [
@@ -180,20 +192,7 @@ class _ViewerTabState extends State<ViewerTab> {
               child: CircularProgressIndicator(),
             ),
           )
-        else if (selectedFile != null) ...[
-          if (loadedSheetName != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  const Icon(Icons.sticky_note_2, size: 18),
-                  const SizedBox(width: 8),
-                  Text('Loaded sheet: $loadedSheetName', style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
+        else if (totalItemsInDatabase > 0) ...[
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
