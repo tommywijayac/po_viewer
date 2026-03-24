@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/item_model.dart';
-import '../database/database_helper.dart';
+import '../database/memory_store.dart';
 import '../widgets/purchase_order_item_card.dart';
 
 class SavedTab extends StatefulWidget {
@@ -12,28 +12,26 @@ class SavedTab extends StatefulWidget {
 }
 
 class _SavedTabState extends State<SavedTab> {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
-  late Future<List<PurchaseOrderItem>> _itemsFuture;
+  List<PurchaseOrderItem> _items = MemoryStore.savedItems;
 
   @override
   void initState() {
     super.initState();
-    _loadItems();
   }
 
   void _loadItems() {
     setState(() {
-      _itemsFuture = _dbHelper.getAllItems();
+      _items = MemoryStore.savedItems;
     });
   }
 
-  Future<void> _removeItem(int id, String itemName) async {
+  Future<void> _removeItem(PurchaseOrderItem item) async {
     try {
-      await _dbHelper.deleteItem(id);
+      MemoryStore.removeItem(item);
       _loadItems();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Removed: $itemName')),
+          SnackBar(content: Text('Removed: ${item.productName}')),
         );
       }
     } catch (e) {
@@ -47,7 +45,7 @@ class _SavedTabState extends State<SavedTab> {
 
   Future<void> _removeAll() async {
     try {
-      await _dbHelper.deleteAllItems();
+      MemoryStore.clear();
       _loadItems();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -94,61 +92,35 @@ class _SavedTabState extends State<SavedTab> {
       children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: FutureBuilder<List<PurchaseOrderItem>>(
-            future: _itemsFuture,
-            builder: (context, snapshot) {
-              bool hasItems = snapshot.hasData && snapshot.data!.isNotEmpty;
-              return ElevatedButton.icon(
-                onPressed: hasItems ? _showRemoveAllConfirmation : null,
-                icon: const Icon(Icons.delete_sweep),
-                label: const Text('Remove All'),
-              );
-            },
+          child: ElevatedButton.icon(
+            onPressed: _items.isNotEmpty ? _showRemoveAllConfirmation : null,
+            icon: const Icon(Icons.delete_sweep),
+            label: const Text('Remove All'),
           ),
         ),
         Expanded(
-          child: FutureBuilder<List<PurchaseOrderItem>>(
-            future: _itemsFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text('Error: ${snapshot.error}'),
-                );
-              }
-
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return Center(
+          child: _items.isEmpty
+              ? Center(
                   child: Text(
                     'No saved items yet',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                );
-              }
-
-              List<PurchaseOrderItem> items = snapshot.data!;
-
-              return ListView.builder(
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  return PurchaseOrderItemCard(
-                    item: item,
-                    cardStyle: CardStyle.compact,
-                    priceFormatter: RupiahPriceFormatter(),
-                    onTap: () {
-                      // Could add functionality here if needed
-                    },
-                    onDeletePressed: () =>
-                        _removeItem(item.id!, item.productName),
-                  );
-                },
-              );
-            },
-          ),
+                )
+              : ListView.builder(
+                  itemCount: _items.length,
+                  itemBuilder: (context, index) {
+                    final item = _items[index];
+                    return PurchaseOrderItemCard(
+                      item: item,
+                      cardStyle: CardStyle.detailed,
+                      priceFormatter: RupiahPriceFormatter(),
+                      onTap: () {
+                        // Could add functionality here if needed
+                      },
+                      onDeletePressed: () => _removeItem(item),
+                    );
+                  },
+                ),
         ),
       ],
     );

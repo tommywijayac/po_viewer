@@ -7,6 +7,7 @@ import 'package:excel/excel.dart' as excel;
 
 import '../models/item_model.dart';
 import '../database/database_helper.dart';
+import '../database/memory_store.dart';
 import '../widgets/purchase_order_item_card.dart';
 
 class ViewerTab extends StatefulWidget {
@@ -142,6 +143,7 @@ class _ViewerTabState extends State<ViewerTab> {
 
     try {
       await _dbHelper.insertItem(selectedItem!);
+      MemoryStore.addItem(selectedItem!);
 
       if (mounted) {
         _showSnackBar('Saved: ${selectedItem!.productName}');

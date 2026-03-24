@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Excel Viewer',
+      title: 'SRC PO Viewer',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
@@ -39,7 +39,7 @@ class ExcelViewerApp extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Excel Viewer'),
+          title: const Text('SRC PO Viewer'),
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Viewer'),
