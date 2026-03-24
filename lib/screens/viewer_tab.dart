@@ -19,6 +19,7 @@ class ViewerTab extends StatefulWidget {
 class _ViewerTabState extends State<ViewerTab> {
   File? selectedFile;
   String? selectedFileName;
+  String? loadedSheetName;
   List<PurchaseOrderItem> excelData = [];
   final TextEditingController searchController = TextEditingController();
   List<PurchaseOrderItem> filteredData = [];
@@ -62,10 +63,13 @@ class _ViewerTabState extends State<ViewerTab> {
       if (selectedFile == null) return;
 
       final fileBytes = selectedFile!.readAsBytesSync();
-      final parsedRows = await compute(_parseExcelInIsolate, fileBytes);
+      final result = await compute(_parseExcelInIsolate, fileBytes);
+
+      final parsedRows = result['rows'] as List<Map<String, dynamic>>;
+      loadedSheetName = result['sheetName'] as String?;
 
       if (parsedRows.isEmpty) {
-        _showSnackBar('No data found in Excel file');
+        _showSnackBar('No data found in first sheet');
         setState(() {
           isLoading = false;
         });
@@ -103,7 +107,7 @@ class _ViewerTabState extends State<ViewerTab> {
       });
 
       _showSnackBar(
-        'Processed: ${parsedRows.length} items | Saved: $insertedCount items',
+        'Loaded sheet: ${loadedSheetName ?? 'unknown'} • Processed: ${parsedRows.length} items • Saved: $insertedCount items',
       );
     } catch (e) {
       setState(() {
@@ -175,6 +179,19 @@ class _ViewerTabState extends State<ViewerTab> {
             ),
           )
         else if (selectedFile != null) ...[
+          if (loadedSheetName != null) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.sticky_note_2, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Loaded sheet: $loadedSheetName', style: Theme.of(context).textTheme.bodyMedium),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: TextField(
@@ -237,16 +254,17 @@ class _ViewerTabState extends State<ViewerTab> {
   }
 }
 
-/// Parse Excel file in isolate and return List of row data Maps
-List<Map<String, dynamic>> _parseExcelInIsolate(
+/// Parse Excel file in isolate and return first-sheet rows plus sheet name
+Map<String, dynamic> _parseExcelInIsolate(
   Uint8List bytes,
 ) {
   final excelFile = excel.Excel.decodeBytes(bytes);
   final List<Map<String, dynamic>> rows = [];
 
-  // Process all sheets
-  for (var sheetName in excelFile.tables.keys) {
-    var sheet = excelFile.tables[sheetName];
+  // Process only the first sheet
+  final firstSheetName = excelFile.tables.keys.isEmpty ? null : excelFile.tables.keys.first;
+  if (firstSheetName != null) {
+    var sheet = excelFile.tables[firstSheetName];
     if (sheet != null) {
       int rowIndex = 0;
       for (var row in sheet.rows) {
@@ -274,7 +292,6 @@ List<Map<String, dynamic>> _parseExcelInIsolate(
               continue;
             }
 
-            // Build row data as a Map (all serializable types)
             final rowData = {
               'po_date': _formatDateForDatabase(_parseExcelDateStatic(poDate)),
               'po_number': poNumber,
@@ -296,8 +313,11 @@ List<Map<String, dynamic>> _parseExcelInIsolate(
       }
     }
   }
-  
-  return rows;
+
+  return {
+    'sheetName': firstSheetName,
+    'rows': rows,
+  };
 }
 
 /// Helper to format DateTime for database storage
