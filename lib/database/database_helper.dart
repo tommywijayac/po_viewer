@@ -44,15 +44,12 @@ class DatabaseHelper {
         po_date TEXT NOT NULL,
         po_number TEXT NOT NULL,
         vendor_name TEXT NOT NULL,
-        project_name TEXT NOT NULL,
         product_name TEXT NOT NULL,
+        category TEXT,
         product_qty INTEGER NOT NULL,
         product_qty_unit TEXT NOT NULL,
         product_unit_price REAL NOT NULL,
-        product_discount_pct REAL NOT NULL,
-        product_final_price REAL NOT NULL,
         created_at TEXT NOT NULL,
-        category TEXT,
         UNIQUE(po_number, vendor_name, product_name)
       )
     ''');

@@ -37,7 +37,6 @@ class PurchaseOrderItemCard extends StatelessWidget {
   /// Styled card matching the provided HTML design
   Widget _buildStyledCard(BuildContext context) {
     final formattedPoDate = DateFormat('dd MMM yyyy').format(item.poDate);
-    final formattedFinalPrice = _formatPrice(item.productFinalPrice);
     final formattedUnitPrice = _formatPrice(item.productUnitPrice);
 
     return GestureDetector(
@@ -88,52 +87,21 @@ class PurchaseOrderItemCard extends StatelessWidget {
                 _buildDivider(),
                 _buildInfoItem('Qty', '${item.productQty} ${item.productQtyUnit}'),
                 _buildDivider(),
-                _buildInfoItem('Discount', '${item.productDiscountPct}%'),
-                _buildDivider(),
                 _buildInfoItem('PO date', formattedPoDate),
               ],
             ),
             const SizedBox(height: 12),
-            // Support row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Wrap the left column
-                Expanded( 
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Project', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10.0, color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
-                      const SizedBox(height: 2),
-                      Text(
-                        item.projectName, 
-                        style: Theme.of(context).textTheme.bodyMedium, 
-                        maxLines: 1, 
-                        overflow: TextOverflow.ellipsis, // Now this will work!
-                      ),
-                    ],
-                  ),
+            // Delete button (only in styled card)
+            if (onDeletePressed != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: onDeletePressed,
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  label: const Text('Delete', style: TextStyle(color: Colors.red)),
                 ),
-                const SizedBox(width: 16), // Add a little gap between the two columns
-                // Wrap the right column
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('Final price', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10.0, color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7))),
-                      const SizedBox(height: 2),
-                      Text(
-                        formattedFinalPrice, 
-                        style: Theme.of(context).textTheme.bodyMedium, 
-                        maxLines: 1, 
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
         ),
       ),
     );
@@ -215,7 +183,7 @@ class PurchaseOrderItemCard extends StatelessWidget {
             ),
             const SizedBox(height: 4.0),
             Text(
-              _getPriceDisplay(),
+              'Price: ${_formatPrice(item.productUnitPrice)}',
               style: Theme.of(context).textTheme.bodySmall,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -254,29 +222,15 @@ class PurchaseOrderItemCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            Text(
-              'Project: ${item.projectName}',
-              style: Theme.of(context).textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
             const SizedBox(height: 4.0),
             if (item.productQty > 1) ...[
               Text(
                 'Qty: ${item.productQty} ${item.productQtyUnit}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              Text(
-                'Total Price: ${_formatPrice(item.productFinalPrice)} (with ${item.productDiscountPct}% discount)',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
             ] else ...[
               Text(
                 'Qty: ${item.productQty} ${item.productQtyUnit} | Unit Price: ${_formatPrice(item.productUnitPrice)}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              Text(
-                'Discount: ${item.productDiscountPct}%',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -306,20 +260,6 @@ class PurchaseOrderItemCard extends StatelessWidget {
       return priceFormatter!.format(price);
     }
     return '\$${price.toStringAsFixed(2)}';
-  }
-
-  /// Get conditional price display based on quantity
-  /// If qty > 1: shows total price with discount
-  /// If qty = 1: shows unit price
-  String _getPriceDisplay() {
-    if (item.productQty > 1) {
-      final discountText = item.productDiscountPct > 0
-          ? ' (${item.productDiscountPct}% discount)'
-          : '';
-      return 'Unit Price: ${_formatPrice(item.productUnitPrice)} | Total Price: ${_formatPrice(item.productFinalPrice)}$discountText';
-    } else {
-      return 'Unit Price: ${_formatPrice(item.productUnitPrice)}';
-    }
   }
 
   /// Format PO date to display only the date portion

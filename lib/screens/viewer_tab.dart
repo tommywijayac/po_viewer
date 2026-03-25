@@ -132,13 +132,10 @@ class _ViewerTabState extends State<ViewerTab> {
         poDate: DateTime.parse(rowData['po_date'] as String),
         poNumber: rowData['po_number'] as String,
         vendorName: rowData['vendor_name'] as String,
-        projectName: rowData['project_name'] as String,
         productName: rowData['product_name'] as String,
         productQty: rowData['product_qty'] as int,
         productQtyUnit: rowData['product_qty_unit'] as String,
         productUnitPrice: rowData['product_unit_price'] as double,
-        productDiscountPct: rowData['product_discount_pct'] as double,
-        productFinalPrice: rowData['product_final_price'] as double,
         category: rowData['category'] as String?,
         createdAt: DateTime.now(),
       )).toList();
@@ -161,9 +158,13 @@ class _ViewerTabState extends State<ViewerTab> {
         isLoading = false;
       });
 
-      _showSnackBar(
-        'Loaded sheet: ${loadedSheetName ?? 'unknown'} • Processed: ${parsedRows.length} items • Saved: $totalInserted items',
-      );
+      if (totalInserted == 0) {
+        _showSnackBar('No new items were saved.', type: SnackBarType.warning);
+      } else if (totalInserted < parsedRows.length) {
+        _showSnackBar(
+          'Loaded sheet: ${loadedSheetName ?? 'unknown'} • Parsed: ${parsedRows.length} items • Saved: $totalInserted items',
+        );
+      }
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -395,18 +396,15 @@ Map<String, dynamic> _parseExcelInIsolate(
         rowIndex++;
 
         try {
-          if (row.length >= 10) {
+          if (row.length >= 9) {
             final poDate = row[0]?.value?.toString() ?? '';
             final poNumber = row[1]?.value?.toString() ?? '';
             final vendor = row[2]?.value?.toString() ?? '';
-            final project = row[4]?.value?.toString() ?? '';
+            final category = row[4]?.value?.toString() ?? '';
             final product = row[5]?.value?.toString() ?? '';
             final qtyStr = row[6]?.value?.toString() ?? '0';
             final unit = row[7]?.value?.toString() ?? '';
             final priceStr = row[8]?.value?.toString() ?? '0';
-            final discountStr = row[9]?.value?.toString() ?? '0';
-            final category = row[10]?.value?.toString() ?? ''; // PLACEHOLDER
-            final finalPriceStr = row[11]?.value?.toString() ?? '0';
 
             if (poDate.isEmpty || vendor.isEmpty || product.isEmpty) {
               continue;
@@ -416,14 +414,11 @@ Map<String, dynamic> _parseExcelInIsolate(
               'po_date': _formatDateForDatabase(_parseExcelDateStatic(poDate)),
               'po_number': poNumber,
               'vendor_name': vendor,
-              'project_name': project,
+              'category': category,
               'product_name': product,
               'product_qty': int.tryParse(qtyStr) ?? 0,
               'product_qty_unit': unit,
               'product_unit_price': double.tryParse(priceStr) ?? 0.0,
-              'product_discount_pct': double.tryParse(discountStr) ?? 0.0,
-              'product_final_price': double.tryParse(finalPriceStr) ?? 0.0,
-              'category': category,
             };
 
             rows.add(rowData);
