@@ -23,11 +23,15 @@ class _ViewerTabState extends State<ViewerTab> {
   File? selectedFile;
   bool isLoading = false;
   final TextEditingController searchController = TextEditingController();
-  
+
   int totalItemsInDatabase = 0;
   List<PurchaseOrderItem> filteredData = [];
   PurchaseOrderItem? selectedItem;
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<String> vendorOptions = [];
+  List<String> categoryOptions = [];
+  String? selectedVendor;
+  String? selectedCategory;
 
   void _showSnackBar(String message, {SnackBarType type = SnackBarType.info}) {
     if (mounted) {
@@ -101,6 +105,10 @@ class _ViewerTabState extends State<ViewerTab> {
           searchController.clear();
           filteredData = [];
           totalItemsInDatabase = 0;
+          vendorOptions = [];
+          categoryOptions = [];
+          selectedVendor = null;
+          selectedCategory = null;
         });
         _showSnackBar('Database reset successfully', type: SnackBarType.info);
       } catch (e) {
@@ -158,6 +166,8 @@ class _ViewerTabState extends State<ViewerTab> {
         isLoading = false;
       });
 
+      await _loadFilterOptions();
+
       if (totalInserted == 0) {
         _showSnackBar('No new items were saved.', type: SnackBarType.warning);
       } else if (totalInserted < parsedRows.length) {
@@ -175,14 +185,57 @@ class _ViewerTabState extends State<ViewerTab> {
 
   void performSearch() async {
     final query = searchController.text.trim();
-    final result = query.isEmpty
-        ? [].cast<PurchaseOrderItem>()
-        : await _dbHelper.searchItems(query.toLowerCase());
+    final hasFilters = (selectedVendor != null && selectedVendor!.isNotEmpty) ||
+        (selectedCategory != null && selectedCategory!.isNotEmpty);
+
+    final result = (query.isEmpty && !hasFilters)
+        ? <PurchaseOrderItem>[]
+        : await _dbHelper.searchItemsWithFilters(
+            query: query,
+            vendor: selectedVendor,
+            category: selectedCategory,
+          );
 
     setState(() {
       filteredData = result;
       selectedItem = null;
     });
+  }
+
+  Future<void> _loadVendorOptions() async {
+    final vendors = await _dbHelper.getDistinctVendors();
+    if (!mounted) return;
+    setState(() {
+      vendorOptions = vendors;
+      if (selectedVendor != null && !vendorOptions.contains(selectedVendor)) {
+        selectedVendor = null;
+      }
+    });
+  }
+
+  Future<void> _loadCategoryOptions({String? vendor}) async {
+    final categories = await _dbHelper.getDistinctCategories(vendor: vendor);
+    if (!mounted) return;
+    setState(() {
+      categoryOptions = categories;
+      if (selectedCategory != null && !categoryOptions.contains(selectedCategory)) {
+        selectedCategory = null;
+      }
+    });
+  }
+
+  Future<void> _loadFilterOptions() async {
+    await _loadVendorOptions();
+    await _loadCategoryOptions(vendor: selectedVendor);
+  }
+
+  Future<void> _clearFilters() async {
+    setState(() {
+      selectedVendor = null;
+      selectedCategory = null;
+    });
+    await _loadCategoryOptions();
+    performSearch();
   }
 
   Future<void> saveSelectedItem() async {
@@ -220,6 +273,7 @@ class _ViewerTabState extends State<ViewerTab> {
   void initState() {
     super.initState();
     _checkDatabaseItems();
+    _loadFilterOptions();
   }
 
   Future<void> _checkDatabaseItems() async {
@@ -289,6 +343,73 @@ class _ViewerTabState extends State<ViewerTab> {
                 ElevatedButton(
                   onPressed: performSearch,
                   child: const Text('Search'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedVendor,
+                    decoration: InputDecoration(
+                      labelText: 'Vendor',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                    ),
+                    hint: const Text('All vendors'),
+                    items: vendorOptions
+                        .map((vendor) => DropdownMenuItem<String>(
+                              value: vendor,
+                              child: Text(vendor, overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
+                    onChanged: (value) async {
+                      setState(() {
+                        selectedVendor = value;
+                        selectedCategory = null;
+                      });
+                      await _loadCategoryOptions(vendor: selectedVendor);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedCategory,
+                    decoration: InputDecoration(
+                      labelText: 'Category',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                    ),
+                    hint: const Text('All categories'),
+                    items: categoryOptions
+                        .map((category) => DropdownMenuItem<String>(
+                              value: category,
+                              child: Text(category, overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategory = value;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                TextButton.icon(
+                  onPressed: (selectedVendor != null || selectedCategory != null)
+                      ? _clearFilters
+                      : null,
+                  icon: const Icon(Icons.filter_alt_off),
+                  label: const Text('Clear'),
                 ),
               ],
             ),

@@ -132,6 +132,77 @@ class DatabaseHelper {
     });
   }
 
+  /// Search items with optional query, vendor, and category filters.
+  Future<List<PurchaseOrderItem>> searchItemsWithFilters({
+    String? query,
+    String? vendor,
+    String? category,
+  }) async {
+    final db = await database;
+    final whereClauses = <String>[];
+    final whereArgs = <Object?>[];
+
+    final trimmedQuery = (query ?? '').trim();
+    if (trimmedQuery.isNotEmpty) {
+      whereClauses.add('(product_name LIKE ? OR vendor_name LIKE ? OR po_number LIKE ?)');
+      final likeQuery = '%$trimmedQuery%';
+      whereArgs
+        ..add(likeQuery)
+        ..add(likeQuery)
+        ..add(likeQuery);
+    }
+
+    if (vendor != null && vendor.isNotEmpty) {
+      whereClauses.add('vendor_name = ?');
+      whereArgs.add(vendor);
+    }
+
+    if (category != null && category.isNotEmpty) {
+      whereClauses.add('category = ?');
+      whereArgs.add(category);
+    }
+
+    final maps = await db.query(
+      _tableName,
+      where: whereClauses.isEmpty ? null : whereClauses.join(' AND '),
+      whereArgs: whereArgs.isEmpty ? null : whereArgs,
+      orderBy: 'po_date DESC',
+    );
+
+    return List.generate(maps.length, (i) {
+      return PurchaseOrderItem.fromMap(maps[i]);
+    });
+  }
+
+  /// Get distinct vendor names.
+  Future<List<String>> getDistinctVendors() async {
+    final db = await database;
+    final maps = await db.rawQuery('''
+      SELECT DISTINCT vendor_name
+      FROM $_tableName
+      WHERE vendor_name IS NOT NULL AND TRIM(vendor_name) != ''
+      ORDER BY vendor_name ASC
+    ''');
+    return maps.map((m) => (m['vendor_name'] as String?) ?? '').where((v) => v.isNotEmpty).toList();
+  }
+
+  /// Get distinct categories; when vendor is provided categories are constrained to that vendor.
+  Future<List<String>> getDistinctCategories({String? vendor}) async {
+    final db = await database;
+    final maps = await db.rawQuery(
+      '''
+      SELECT DISTINCT category
+      FROM $_tableName
+      WHERE category IS NOT NULL AND TRIM(category) != ''
+      ${vendor != null && vendor.isNotEmpty ? 'AND vendor_name = ?' : ''}
+      ORDER BY category ASC
+      ''',
+      vendor != null && vendor.isNotEmpty ? [vendor] : null,
+    );
+
+    return maps.map((m) => (m['category'] as String?) ?? '').where((c) => c.isNotEmpty).toList();
+  }
+
   /// Count all items in the database
   Future<int> countItems() async {
     final db = await database;
