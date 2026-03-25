@@ -97,8 +97,12 @@ class _SavedTabState extends State<SavedTab> {
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton.icon(
             onPressed: _items.isNotEmpty ? _showRemoveAllConfirmation : null,
-            icon: const Icon(Icons.delete_sweep),
+            icon: const Icon(Icons.delete_forever),
             label: const Text('Remove All'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
           ),
         ),
         Expanded(
@@ -109,7 +113,14 @@ class _SavedTabState extends State<SavedTab> {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                 )
-              : ListView.builder(
+              : GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 8.0,
+                    mainAxisSpacing: 8.0,
+                    childAspectRatio: 1.3,
+                  ),
                   itemCount: _items.length,
                   itemBuilder: (context, index) {
                     final item = _items[index];

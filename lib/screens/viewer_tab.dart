@@ -320,7 +320,14 @@ class _ViewerTabState extends State<ViewerTab> {
                   )
                 else
                   Expanded(
-                    child: ListView.builder(
+                    child: GridView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                        childAspectRatio: 1.5,
+                      ),
                       itemCount: filteredData.length,
                       itemBuilder: (context, index) {
                         PurchaseOrderItem item = filteredData[index];

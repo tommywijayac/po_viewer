@@ -38,12 +38,13 @@ class PurchaseOrderItemCard extends StatelessWidget {
   Widget _buildStyledCard(BuildContext context) {
     final formattedPoDate = DateFormat('dd MMM yyyy').format(item.poDate);
     final formattedUnitPrice = _formatPrice(item.productUnitPrice);
+    final hasDeleteButton = onDeletePressed != null;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        margin: const EdgeInsets.all(2.0),
+        padding: EdgeInsets.fromLTRB(14, 12, 14, hasDeleteButton ? 44 : 12),
         decoration: BoxDecoration(
           color: isSelected
               ? Colors.blue.withAlpha(77) // 0.3 * 255
@@ -54,54 +55,89 @@ class PurchaseOrderItemCard extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(8.0),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // Identity row
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.productName,
-                  style: const TextStyle(fontSize: 17.0, fontWeight: FontWeight.w500),
+                  style: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.w600),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      formattedUnitPrice,
+                      style: const TextStyle(
+                        fontSize: 20.0,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          '| PO Date',
+                          style: TextStyle(
+                            fontSize: 15.0,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          formattedPoDate,
+                          style: const TextStyle(
+                            fontSize: 20.0,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Qty: ${item.productQty} ${item.productQtyUnit}  |  PO: ${item.poNumber}',
+                  style: const TextStyle(fontSize: 12.0, color: Colors.black54),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 6,
                   children: [
-                    _buildBadge(context, 'PO', item.poNumber, const Color(0xFFE6F1FB), const Color(0xFF0C447C)),
                     _buildBadge(context, 'Vendor', item.vendorName, const Color(0xFFE1F5EE), const Color(0xFF085041)),
-                    if (item.category != null && item.category!.isNotEmpty) ...[
+                    if (item.category != null && item.category!.isNotEmpty)
                       _buildBadge(context, 'Category', item.category!, const Color(0xFFFFF7E6), const Color(0xFF995A00)),
-                    ],
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            // Info row
-            Row(
-              children: [
-                _buildInfoItem('Unit price', formattedUnitPrice),
-                _buildDivider(),
-                _buildInfoItem('Qty', '${item.productQty} ${item.productQtyUnit}'),
-                _buildDivider(),
-                _buildInfoItem('PO date', formattedPoDate),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Delete button (only in styled card)
-            if (onDeletePressed != null)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
+            if (hasDeleteButton)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: IconButton(
                   onPressed: onDeletePressed,
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                  icon: const Icon(Icons.delete),
+                  tooltip: 'Delete',
+                  visualDensity: VisualDensity.compact,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
-            ],
+          ],
         ),
       ),
     );
@@ -114,34 +150,12 @@ class PurchaseOrderItemCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$label ', style: const TextStyle(fontSize: 10.0, fontWeight: FontWeight.bold, letterSpacing: 0.4, color: Colors.black54)),
+          Text('$label ', style: const TextStyle(fontSize: 13.0, fontWeight: FontWeight.bold, letterSpacing: 0.4, color: Colors.black54)),
           Flexible(
-            child: Text(value, style: TextStyle(fontSize: 12.0, color: textColor, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)
+            child: Text(value, style: TextStyle(fontSize: 15.0, color: textColor, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildInfoItem(String label, String value) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label.toUpperCase(), style: const TextStyle(fontSize: 10.0, color: Colors.grey, letterSpacing: 0.04)),
-          const SizedBox(height: 2),
-          Text(value, style: const TextStyle(fontSize: 13.0, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Container(
-      width: 0.5,
-      height: 28,
-      margin: const EdgeInsets.symmetric(horizontal: 8.0),
-      color: Colors.grey.shade300,
     );
   }
 
@@ -292,5 +306,5 @@ class RupiahPriceFormatter implements PriceFormatter {
   final NumberFormat _formatter = NumberFormat('###,###.##', 'id_ID');
 
   @override
-  String format(double price) => 'Rp${_formatter.format(price)}';
+  String format(double price) => 'Rp ${_formatter.format(price)}';
 }
