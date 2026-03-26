@@ -23,6 +23,8 @@ class _ViewerTabState extends State<ViewerTab> {
   File? selectedFile;
   bool isLoading = false;
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController vendorFilterController = TextEditingController();
+  final TextEditingController categoryFilterController = TextEditingController();
 
   int totalItemsInDatabase = 0;
   List<PurchaseOrderItem> filteredData = [];
@@ -209,6 +211,7 @@ class _ViewerTabState extends State<ViewerTab> {
       vendorOptions = vendors;
       if (selectedVendor != null && !vendorOptions.contains(selectedVendor)) {
         selectedVendor = null;
+        vendorFilterController.clear();
       }
     });
   }
@@ -220,6 +223,7 @@ class _ViewerTabState extends State<ViewerTab> {
       categoryOptions = categories;
       if (selectedCategory != null && !categoryOptions.contains(selectedCategory)) {
         selectedCategory = null;
+        categoryFilterController.clear();
       }
     });
   }
@@ -233,6 +237,8 @@ class _ViewerTabState extends State<ViewerTab> {
     setState(() {
       selectedVendor = null;
       selectedCategory = null;
+      vendorFilterController.clear();
+      categoryFilterController.clear();
     });
     await _loadCategoryOptions();
     performSearch();
@@ -266,6 +272,8 @@ class _ViewerTabState extends State<ViewerTab> {
   @override
   void dispose() {
     searchController.dispose();
+    vendorFilterController.dispose();
+    categoryFilterController.dispose();
     super.dispose();
   }
 
@@ -353,26 +361,34 @@ class _ViewerTabState extends State<ViewerTab> {
             child: Row(
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedVendor,
-                    decoration: InputDecoration(
-                      labelText: 'Vendor',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
+                  child: DropdownMenu<String>(
+                    key: ValueKey(selectedVendor ?? 'all-vendors'),
+                    controller: vendorFilterController,
+                    width: double.infinity,
+                    menuHeight: 280,
+                    enableFilter: true,
+                    enableSearch: true,
+                    requestFocusOnTap: true,
+                    initialSelection: selectedVendor ?? '',
+                    label: const Text('Vendor'),
+                    hintText: 'All vendors',
+                    dropdownMenuEntries: [
+                      const DropdownMenuEntry<String>(
+                        value: '',
+                        label: '',
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                    ),
-                    hint: const Text('All vendors'),
-                    items: vendorOptions
-                        .map((vendor) => DropdownMenuItem<String>(
-                              value: vendor,
-                              child: Text(vendor, overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (value) async {
+                      ...vendorOptions.map(
+                        (vendor) => DropdownMenuEntry<String>(
+                          value: vendor,
+                          label: vendor,
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) async {
                       setState(() {
-                        selectedVendor = value;
+                        selectedVendor = (value == null || value.isEmpty) ? null : value;
                         selectedCategory = null;
+                        categoryFilterController.clear();
                       });
                       await _loadCategoryOptions(vendor: selectedVendor);
                     },
@@ -380,25 +396,32 @@ class _ViewerTabState extends State<ViewerTab> {
                 ),
                 const SizedBox(width: 8.0),
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    decoration: InputDecoration(
-                      labelText: 'Category',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
+                  child: DropdownMenu<String>(
+                    key: ValueKey(selectedCategory ?? 'all-categories'),
+                    controller: categoryFilterController,
+                    width: double.infinity,
+                    menuHeight: 280,
+                    enableFilter: true,
+                    enableSearch: true,
+                    requestFocusOnTap: true,
+                    initialSelection: selectedCategory ?? '',
+                    label: const Text('Category'),
+                    hintText: 'All categories',
+                    dropdownMenuEntries: [
+                      const DropdownMenuEntry<String>(
+                        value: '',
+                        label: '',
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                    ),
-                    hint: const Text('All categories'),
-                    items: categoryOptions
-                        .map((category) => DropdownMenuItem<String>(
-                              value: category,
-                              child: Text(category, overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
+                      ...categoryOptions.map(
+                        (category) => DropdownMenuEntry<String>(
+                          value: category,
+                          label: category,
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) {
                       setState(() {
-                        selectedCategory = value;
+                        selectedCategory = (value == null || value.isEmpty) ? null : value;
                       });
                     },
                   ),
