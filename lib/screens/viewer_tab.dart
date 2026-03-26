@@ -326,7 +326,7 @@ class _ViewerTabState extends State<ViewerTab> {
                   child: TextField(
                     controller: searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search by product, vendor, or PO number...',
+                      hintText: 'Search by product name, vendor, or category...',
                       prefixIcon: const Icon(Icons.search),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16.0,
