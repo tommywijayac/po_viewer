@@ -313,38 +313,16 @@ class _ViewerTabState extends State<ViewerTab> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTap: _dismissKeyboard,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: pickExcelFile,
-                  icon: const Icon(Icons.folder_open),
-                  label: const Text('Select Excel File'),
-                ),
-                const SizedBox(width: 16.0),
-                ElevatedButton.icon(
-                  onPressed: _resetDatabase,
-                  icon: const Icon(Icons.delete_forever),
-                  label: const Text('Reset Data'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isLoading)
-            const Expanded(child: Center(child: CircularProgressIndicator()))
-          else if (totalItemsInDatabase > 0) ...[
+  Widget _buildMainContent() {
+    if (isLoading) {
+      return const Expanded(child: Center(child: CircularProgressIndicator()));
+    }
+
+    if (totalItemsInDatabase > 0) {
+      return Expanded(
+        child: Column(
+          children: [
+            const SizedBox(height: 8.0),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
@@ -467,87 +445,120 @@ class _ViewerTabState extends State<ViewerTab> {
             ),
             const SizedBox(height: 12.0),
             Expanded(
-              child: Column(
-                children: [
-                  if (filteredData.isEmpty)
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          totalItemsInDatabase == 0
-                              ? 'No items loaded'
-                              : 'Enter search term and click Search to view items',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
-                        ),
+              child: filteredData.isEmpty
+                  ? Center(
+                      child: Text(
+                        totalItemsInDatabase == 0
+                            ? 'No items loaded'
+                            : 'Enter search term and click Search to view items',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
                       ),
                     )
-                  else
-                    Expanded(
-                      child: GridView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12.0,
-                          vertical: 8.0,
-                        ),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 8.0,
-                              mainAxisSpacing: 8.0,
-                              childAspectRatio: 1.3,
-                            ),
-                        itemCount: filteredData.length,
-                        itemBuilder: (context, index) {
-                          PurchaseOrderItem item = filteredData[index];
-                          bool isSelected = selectedItem == item;
-                          return PurchaseOrderItemCard(
-                            item: item,
-                            isSelected: isSelected,
-                            cardStyle: CardStyle.styled,
-                            priceFormatter: RupiahPriceFormatter(),
-                            onTap: () {
-                              setState(() {
-                                selectedItem = isSelected ? null : item;
-                              });
-                            },
-                          );
-                        },
+                  : GridView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12.0,
+                        vertical: 8.0,
                       ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 8.0,
+                            mainAxisSpacing: 8.0,
+                            childAspectRatio: 1.3,
+                          ),
+                      itemCount: filteredData.length,
+                      itemBuilder: (context, index) {
+                        PurchaseOrderItem item = filteredData[index];
+                        bool isSelected = selectedItem == item;
+                        return PurchaseOrderItemCard(
+                          item: item,
+                          isSelected: isSelected,
+                          cardStyle: CardStyle.styled,
+                          priceFormatter: RupiahPriceFormatter(),
+                          onTap: () {
+                            setState(() {
+                              selectedItem = isSelected ? null : item;
+                            });
+                          },
+                        );
+                      },
                     ),
-                  // Status bar
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 8.0,
-                    ),
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Available: $totalItemsInDatabase items',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        Text(
-                          filteredData.isEmpty
-                              ? 'No matching results'
-                              : 'Results: ${filteredData.length} items',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Expanded(
+      child: Center(
+        child: Text(
+          'Select an Excel file to begin',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: _dismissKeyboard,
+      child: Column(
+        children: [
+          _buildMainContent(),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            color: Theme.of(context).colorScheme.surface,
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: pickExcelFile,
+                    icon: const Icon(Icons.folder_open),
+                    label: const Text('Select Excel File'),
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _resetDatabase,
+                    icon: const Icon(Icons.delete_forever),
+                    label: const Text('Reset Data'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
                     ),
                   ),
-                ],
-              ),
-            ),
-          ] else
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Select an Excel file to begin',
-                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
+              ],
+            ),
+          ),
+          if (!isLoading && totalItemsInDatabase > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Available: $totalItemsInDatabase items',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  Text(
+                    filteredData.isEmpty
+                        ? 'No matching results'
+                        : 'Results: ${filteredData.length} items',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ),
             ),
         ],
