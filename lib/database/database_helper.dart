@@ -7,7 +7,7 @@ class DatabaseHelper {
   static const String _databaseName = 'po_viewer.db';
   static const String _tableName = 'purchase_order_histories';
   static const String _ftsTableName = 'purchase_order_histories_fts';
-  static const int _databaseVersion = 2;
+  static const int _databaseVersion = 3;
 
   // Singleton instance
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -57,6 +57,8 @@ class DatabaseHelper {
       )
     ''');
 
+    await _createSearchFilterIndexes(db);
+
     await _createFtsInfrastructure(db);
   }
 
@@ -65,6 +67,27 @@ class DatabaseHelper {
       await _dropFtsInfrastructure(db);
       await _createFtsInfrastructure(db);
     }
+
+    if (oldVersion < 3) {
+      await _createSearchFilterIndexes(db);
+    }
+  }
+
+  Future<void> _createSearchFilterIndexes(Database db) async {
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_${_tableName}_vendor_name
+      ON $_tableName(vendor_name)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_${_tableName}_category
+      ON $_tableName(category)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_${_tableName}_vendor_category
+      ON $_tableName(vendor_name, category)
+    ''');
   }
 
   Future<void> _dropFtsInfrastructure(Database db) async {
@@ -117,7 +140,9 @@ class DatabaseHelper {
   }
 
   Future<void> _rebuildFtsIndex(Database db) async {
-    await db.execute("INSERT INTO $_ftsTableName($_ftsTableName) VALUES('rebuild')");
+    await db.execute(
+      "INSERT INTO $_ftsTableName($_ftsTableName) VALUES('rebuild')",
+    );
   }
 
   String _buildFtsMatchQuery(String query) {
@@ -167,10 +192,7 @@ class DatabaseHelper {
   /// Get all items from the database
   Future<List<PurchaseOrderItem>> getAllItems() async {
     final db = await database;
-    final maps = await db.query(
-      _tableName,
-      orderBy: 'created_at DESC',
-    );
+    final maps = await db.query(_tableName, orderBy: 'created_at DESC');
 
     return List.generate(maps.length, (i) {
       return PurchaseOrderItem.fromMap(maps[i]);
@@ -180,11 +202,7 @@ class DatabaseHelper {
   /// Delete an item by id
   Future<int> deleteItem(int id) async {
     final db = await database;
-    return await db.delete(
-      _tableName,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete(_tableName, where: 'id = ?', whereArgs: [id]);
   }
 
   /// Delete all items
@@ -192,7 +210,6 @@ class DatabaseHelper {
     final db = await database;
     return await db.delete(_tableName);
   }
-
 
   /// Search items with optional query, vendor, and category filters.
   Future<List<PurchaseOrderItem>> searchItemsWithFilters({
@@ -221,16 +238,13 @@ class DatabaseHelper {
     }
 
     final maps = trimmedQuery.isNotEmpty
-        ? await db.rawQuery(
-            '''
+        ? await db.rawQuery('''
             SELECT p.*
             FROM $_tableName p
             INNER JOIN $_ftsTableName ON $_ftsTableName.rowid = p.id
             WHERE ${whereClauses.join(' AND ')}
             ORDER BY p.po_date DESC
-            ''',
-            whereArgs,
-          )
+            ''', whereArgs)
         : await db.query(
             '$_tableName p',
             where: whereClauses.isEmpty ? null : whereClauses.join(' AND '),
@@ -252,30 +266,35 @@ class DatabaseHelper {
       WHERE vendor_name IS NOT NULL AND TRIM(vendor_name) != ''
       ORDER BY vendor_name ASC
     ''');
-    return maps.map((m) => (m['vendor_name'] as String?) ?? '').where((v) => v.isNotEmpty).toList();
+    return maps
+        .map((m) => (m['vendor_name'] as String?) ?? '')
+        .where((v) => v.isNotEmpty)
+        .toList();
   }
 
   /// Get distinct categories; when vendor is provided categories are constrained to that vendor.
   Future<List<String>> getDistinctCategories({String? vendor}) async {
     final db = await database;
-    final maps = await db.rawQuery(
-      '''
+    final maps = await db.rawQuery('''
       SELECT DISTINCT category
       FROM $_tableName
       WHERE category IS NOT NULL AND TRIM(category) != ''
       ${vendor != null && vendor.isNotEmpty ? 'AND vendor_name = ?' : ''}
       ORDER BY category ASC
-      ''',
-      vendor != null && vendor.isNotEmpty ? [vendor] : null,
-    );
+      ''', vendor != null && vendor.isNotEmpty ? [vendor] : null);
 
-    return maps.map((m) => (m['category'] as String?) ?? '').where((c) => c.isNotEmpty).toList();
+    return maps
+        .map((m) => (m['category'] as String?) ?? '')
+        .where((c) => c.isNotEmpty)
+        .toList();
   }
 
   /// Count all items in the database
   Future<int> countItems() async {
     final db = await database;
-    final countQuery = await db.rawQuery('SELECT COUNT(*) as count FROM $_tableName');
+    final countQuery = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM $_tableName',
+    );
     final count = Sqflite.firstIntValue(countQuery);
     return count ?? 0;
   }
@@ -286,4 +305,3 @@ class DatabaseHelper {
     await db.close();
   }
 }
-

@@ -114,3 +114,6 @@ web/flutter_service_worker.js
 Thumbs.db
 .AppleDouble
 .LSOverride
+
+# Release docs
+release/
