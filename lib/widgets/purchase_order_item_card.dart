@@ -44,7 +44,7 @@ class PurchaseOrderItemCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.all(2.0),
-        padding: EdgeInsets.fromLTRB(14, 12, 14, hasDeleteButton ? 44 : 12),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         decoration: BoxDecoration(
           color: isSelected
               ? Colors.blue.withAlpha(77) // 0.3 * 255

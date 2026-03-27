@@ -24,7 +24,8 @@ class _ViewerTabState extends State<ViewerTab> {
   bool isLoading = false;
   final TextEditingController searchController = TextEditingController();
   final TextEditingController vendorFilterController = TextEditingController();
-  final TextEditingController categoryFilterController = TextEditingController();
+  final TextEditingController categoryFilterController =
+      TextEditingController();
 
   int totalItemsInDatabase = 0;
   List<PurchaseOrderItem> filteredData = [];
@@ -492,7 +493,7 @@ class _ViewerTabState extends State<ViewerTab> {
                               crossAxisCount: 2,
                               crossAxisSpacing: 8.0,
                               mainAxisSpacing: 8.0,
-                              childAspectRatio: 1.5,
+                              childAspectRatio: 1.3,
                             ),
                         itemCount: filteredData.length,
                         itemBuilder: (context, index) {
