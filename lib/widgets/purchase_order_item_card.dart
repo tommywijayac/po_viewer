@@ -62,7 +62,7 @@ class PurchaseOrderItemCard extends StatelessWidget {
               children: [
                 Text(
                   item.productName,
-                  style: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.w600),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -75,7 +75,7 @@ class PurchaseOrderItemCard extends StatelessWidget {
                     Text(
                       formattedUnitPrice,
                       style: const TextStyle(
-                        fontSize: 20.0,
+                        fontSize: 16.0,
                         color: Colors.red,
                         fontWeight: FontWeight.w600,
                       ),
@@ -86,7 +86,7 @@ class PurchaseOrderItemCard extends StatelessWidget {
                         const Text(
                           '| PO Date',
                           style: TextStyle(
-                            fontSize: 15.0,
+                            fontSize: 13.0,
                             color: Colors.black54,
                           ),
                         ),
@@ -94,7 +94,7 @@ class PurchaseOrderItemCard extends StatelessWidget {
                         Text(
                           formattedPoDate,
                           style: const TextStyle(
-                            fontSize: 20.0,
+                            fontSize: 16.0,
                             color: Colors.black87,
                             fontWeight: FontWeight.w600,
                           ),
@@ -106,7 +106,7 @@ class PurchaseOrderItemCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Qty: ${item.productQty} ${item.productQtyUnit}  |  PO: ${item.poNumber}',
-                  style: const TextStyle(fontSize: 12.0, color: Colors.black54),
+                  style: const TextStyle(fontSize: 10.0, color: Colors.black54),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
