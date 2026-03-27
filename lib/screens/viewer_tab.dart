@@ -35,23 +35,23 @@ class _ViewerTabState extends State<ViewerTab> {
   String? selectedVendor;
   String? selectedCategory;
 
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   void _showSnackBar(String message, {SnackBarType type = SnackBarType.info}) {
     if (mounted) {
       final color = switch (type) {
-        SnackBarType.info  => Colors.blue,
+        SnackBarType.info => Colors.blue,
         SnackBarType.warning => Colors.orange,
         SnackBarType.error => Colors.red,
       };
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: color,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
     }
   }
-
 
   Future<void> pickExcelFile() async {
     try {
@@ -130,7 +130,10 @@ class _ViewerTabState extends State<ViewerTab> {
       final loadedSheetName = result['sheetName'] as String?;
 
       if (parsedRows.isEmpty) {
-        _showSnackBar('No data found in first sheet', type: SnackBarType.warning);
+        _showSnackBar(
+          'No data found in first sheet',
+          type: SnackBarType.warning,
+        );
         setState(() {
           isLoading = false;
         });
@@ -138,23 +141,29 @@ class _ViewerTabState extends State<ViewerTab> {
       }
 
       // Convert parsed rows to PurchaseOrderItem objects
-      final items = parsedRows.map((rowData) => PurchaseOrderItem(
-        poDate: DateTime.parse(rowData['po_date'] as String),
-        poNumber: rowData['po_number'] as String,
-        vendorName: rowData['vendor_name'] as String,
-        productName: rowData['product_name'] as String,
-        productQty: rowData['product_qty'] as int,
-        productQtyUnit: rowData['product_qty_unit'] as String,
-        productUnitPrice: rowData['product_unit_price'] as double,
-        category: rowData['category'] as String?,
-        createdAt: DateTime.now(),
-      )).toList();
+      final items = parsedRows
+          .map(
+            (rowData) => PurchaseOrderItem(
+              poDate: DateTime.parse(rowData['po_date'] as String),
+              poNumber: rowData['po_number'] as String,
+              vendorName: rowData['vendor_name'] as String,
+              productName: rowData['product_name'] as String,
+              productQty: rowData['product_qty'] as int,
+              productQtyUnit: rowData['product_qty_unit'] as String,
+              productUnitPrice: rowData['product_unit_price'] as double,
+              category: rowData['category'] as String?,
+              createdAt: DateTime.now(),
+            ),
+          )
+          .toList();
 
       // Insert items in batches of 100
       const batchSize = 100;
       int totalInserted = 0;
       for (int i = 0; i < items.length; i += batchSize) {
-        final end = (i + batchSize < items.length) ? i + batchSize : items.length;
+        final end = (i + batchSize < items.length)
+            ? i + batchSize
+            : items.length;
         final batch = items.sublist(i, end);
         final batchInserted = await _dbHelper.insertItems(batch);
         totalInserted += batchInserted;
@@ -186,8 +195,11 @@ class _ViewerTabState extends State<ViewerTab> {
   }
 
   void performSearch() async {
+    _dismissKeyboard();
+
     final query = searchController.text.trim();
-    final hasFilters = (selectedVendor != null && selectedVendor!.isNotEmpty) ||
+    final hasFilters =
+        (selectedVendor != null && selectedVendor!.isNotEmpty) ||
         (selectedCategory != null && selectedCategory!.isNotEmpty);
 
     final result = (query.isEmpty && !hasFilters)
@@ -221,7 +233,8 @@ class _ViewerTabState extends State<ViewerTab> {
     if (!mounted) return;
     setState(() {
       categoryOptions = categories;
-      if (selectedCategory != null && !categoryOptions.contains(selectedCategory)) {
+      if (selectedCategory != null &&
+          !categoryOptions.contains(selectedCategory)) {
         selectedCategory = null;
         categoryFilterController.clear();
       }
@@ -246,7 +259,10 @@ class _ViewerTabState extends State<ViewerTab> {
 
   Future<void> saveSelectedItem() async {
     if (selectedItem == null) {
-      _showSnackBar('Please select an item to save', type: SnackBarType.warning);
+      _showSnackBar(
+        'Please select an item to save',
+        type: SnackBarType.warning,
+      );
       return;
     }
 
@@ -254,7 +270,10 @@ class _ViewerTabState extends State<ViewerTab> {
       final added = MemoryStore.addItem(selectedItem!);
 
       if (!added) {
-        _showSnackBar('Item already exists in saved list', type: SnackBarType.warning);
+        _showSnackBar(
+          'Item already exists in saved list',
+          type: SnackBarType.warning,
+        );
         return;
       }
 
@@ -295,245 +314,256 @@ class _ViewerTabState extends State<ViewerTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              ElevatedButton.icon(
-                onPressed: pickExcelFile,
-                icon: const Icon(Icons.folder_open),
-                label: const Text('Select Excel File'),
-              ),
-              const SizedBox(width: 16.0),
-              ElevatedButton.icon(
-                onPressed: _resetDatabase,
-                icon: const Icon(Icons.delete_forever),
-                label: const Text('Reset Data'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (isLoading)
-          const Expanded(
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
-          )
-        else if (totalItemsInDatabase > 0) ...[
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: _dismissKeyboard,
+      child: Column(
+        children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search by product name, vendor, or category...',
-                      prefixIcon: const Icon(Icons.search),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 12.0,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    ),
-                    onSubmitted: (_) => performSearch(),
-                  ),
+                ElevatedButton.icon(
+                  onPressed: pickExcelFile,
+                  icon: const Icon(Icons.folder_open),
+                  label: const Text('Select Excel File'),
                 ),
-                const SizedBox(width: 8.0),
-                ElevatedButton(
-                  onPressed: performSearch,
-                  child: const Text('Search'),
+                const SizedBox(width: 16.0),
+                ElevatedButton.icon(
+                  onPressed: _resetDatabase,
+                  icon: const Icon(Icons.delete_forever),
+                  label: const Text('Reset Data'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8.0),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownMenu<String>(
-                    key: ValueKey(selectedVendor ?? 'all-vendors'),
-                    controller: vendorFilterController,
-                    width: double.infinity,
-                    menuHeight: 280,
-                    enableFilter: true,
-                    enableSearch: true,
-                    requestFocusOnTap: true,
-                    initialSelection: selectedVendor ?? '',
-                    label: const Text('Vendor'),
-                    hintText: 'All vendors',
-                    dropdownMenuEntries: [
-                      const DropdownMenuEntry<String>(
-                        value: '',
-                        label: '',
-                      ),
-                      ...vendorOptions.map(
-                        (vendor) => DropdownMenuEntry<String>(
-                          value: vendor,
-                          label: vendor,
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) async {
-                      setState(() {
-                        selectedVendor = (value == null || value.isEmpty) ? null : value;
-                        selectedCategory = null;
-                        categoryFilterController.clear();
-                      });
-                      await _loadCategoryOptions(vendor: selectedVendor);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8.0),
-                Expanded(
-                  child: DropdownMenu<String>(
-                    key: ValueKey(selectedCategory ?? 'all-categories'),
-                    controller: categoryFilterController,
-                    width: double.infinity,
-                    menuHeight: 280,
-                    enableFilter: true,
-                    enableSearch: true,
-                    requestFocusOnTap: true,
-                    initialSelection: selectedCategory ?? '',
-                    label: const Text('Category'),
-                    hintText: 'All categories',
-                    dropdownMenuEntries: [
-                      const DropdownMenuEntry<String>(
-                        value: '',
-                        label: '',
-                      ),
-                      ...categoryOptions.map(
-                        (category) => DropdownMenuEntry<String>(
-                          value: category,
-                          label: category,
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      setState(() {
-                        selectedCategory = (value == null || value.isEmpty) ? null : value;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8.0),
-                TextButton.icon(
-                  onPressed: (selectedVendor != null || selectedCategory != null)
-                      ? _clearFilters
-                      : null,
-                  icon: const Icon(Icons.filter_alt_off),
-                  label: const Text('Clear'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12.0),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: ElevatedButton.icon(
-              onPressed: saveSelectedItem,
-              icon: const Icon(Icons.save),
-              label: const Text('Save Selected Item'),
-            ),
-          ),
-          const SizedBox(height: 12.0),
-          Expanded(
-            child: Column(
-              children: [
-                if (filteredData.isEmpty)
+          if (isLoading)
+            const Expanded(child: Center(child: CircularProgressIndicator()))
+          else if (totalItemsInDatabase > 0) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
                   Expanded(
-                    child: Center(
-                      child: Text(
-                        totalItemsInDatabase == 0
-                            ? 'No items loaded'
-                            : 'Enter search term and click Search to view items',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                        textAlign: TextAlign.center,
+                    child: TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        hintText:
+                            'Search by product name, vendor, or category...',
+                        prefixIcon: const Icon(Icons.search),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 12.0,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
                       ),
+                      onSubmitted: (_) => performSearch(),
                     ),
-                  )
-                else
+                  ),
+                  const SizedBox(width: 8.0),
+                  ElevatedButton(
+                    onPressed: performSearch,
+                    child: const Text('Search'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
                   Expanded(
-                    child: GridView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 8.0,
-                        mainAxisSpacing: 8.0,
-                        childAspectRatio: 1.5,
-                      ),
-                      itemCount: filteredData.length,
-                      itemBuilder: (context, index) {
-                        PurchaseOrderItem item = filteredData[index];
-                        bool isSelected = selectedItem == item;
-                        return PurchaseOrderItemCard(
-                          item: item,
-                          isSelected: isSelected,
-                          cardStyle: CardStyle.styled,
-                          priceFormatter: RupiahPriceFormatter(),
-                          onTap: () {
-                            setState(() {
-                              selectedItem = isSelected ? null : item;
-                            });
-                          },
-                        );
+                    child: DropdownMenu<String>(
+                      key: ValueKey(selectedVendor ?? 'all-vendors'),
+                      controller: vendorFilterController,
+                      width: double.infinity,
+                      menuHeight: 280,
+                      enableFilter: true,
+                      enableSearch: true,
+                      requestFocusOnTap: true,
+                      initialSelection: selectedVendor ?? '',
+                      label: const Text('Vendor'),
+                      hintText: 'All vendors',
+                      dropdownMenuEntries: [
+                        const DropdownMenuEntry<String>(value: '', label: ''),
+                        ...vendorOptions.map(
+                          (vendor) => DropdownMenuEntry<String>(
+                            value: vendor,
+                            label: vendor,
+                          ),
+                        ),
+                      ],
+                      onSelected: (value) async {
+                        setState(() {
+                          selectedVendor = (value == null || value.isEmpty)
+                              ? null
+                              : value;
+                          selectedCategory = null;
+                          categoryFilterController.clear();
+                        });
+                        await _loadCategoryOptions(vendor: selectedVendor);
                       },
                     ),
                   ),
-                // Status bar
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Available: $totalItemsInDatabase items',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      Text(
-                        filteredData.isEmpty ? 'No matching results' : 'Results: ${filteredData.length} items',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
+                  const SizedBox(width: 8.0),
+                  Expanded(
+                    child: DropdownMenu<String>(
+                      key: ValueKey(selectedCategory ?? 'all-categories'),
+                      controller: categoryFilterController,
+                      width: double.infinity,
+                      menuHeight: 280,
+                      enableFilter: true,
+                      enableSearch: true,
+                      requestFocusOnTap: true,
+                      initialSelection: selectedCategory ?? '',
+                      label: const Text('Category'),
+                      hintText: 'All categories',
+                      dropdownMenuEntries: [
+                        const DropdownMenuEntry<String>(value: '', label: ''),
+                        ...categoryOptions.map(
+                          (category) => DropdownMenuEntry<String>(
+                            value: category,
+                            label: category,
+                          ),
+                        ),
+                      ],
+                      onSelected: (value) {
+                        setState(() {
+                          selectedCategory = (value == null || value.isEmpty)
+                              ? null
+                              : value;
+                        });
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ] else
-          Expanded(
-            child: Center(
-              child: Text(
-                'Select an Excel file to begin',
-                style: Theme.of(context).textTheme.headlineSmall,
+                  const SizedBox(width: 8.0),
+                  TextButton.icon(
+                    onPressed:
+                        (selectedVendor != null || selectedCategory != null)
+                        ? _clearFilters
+                        : null,
+                    icon: const Icon(Icons.filter_alt_off),
+                    label: const Text('Clear'),
+                  ),
+                ],
               ),
             ),
-          ),
-      ],
+            const SizedBox(height: 12.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: ElevatedButton.icon(
+                onPressed: saveSelectedItem,
+                icon: const Icon(Icons.save),
+                label: const Text('Save Selected Item'),
+              ),
+            ),
+            const SizedBox(height: 12.0),
+            Expanded(
+              child: Column(
+                children: [
+                  if (filteredData.isEmpty)
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          totalItemsInDatabase == 0
+                              ? 'No items loaded'
+                              : 'Enter search term and click Search to view items',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: GridView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 8.0,
+                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 8.0,
+                              mainAxisSpacing: 8.0,
+                              childAspectRatio: 1.5,
+                            ),
+                        itemCount: filteredData.length,
+                        itemBuilder: (context, index) {
+                          PurchaseOrderItem item = filteredData[index];
+                          bool isSelected = selectedItem == item;
+                          return PurchaseOrderItemCard(
+                            item: item,
+                            isSelected: isSelected,
+                            cardStyle: CardStyle.styled,
+                            priceFormatter: RupiahPriceFormatter(),
+                            onTap: () {
+                              setState(() {
+                                selectedItem = isSelected ? null : item;
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  // Status bar
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Available: $totalItemsInDatabase items',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Text(
+                          filteredData.isEmpty
+                              ? 'No matching results'
+                              : 'Results: ${filteredData.length} items',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else
+            Expanded(
+              child: Center(
+                child: Text(
+                  'Select an Excel file to begin',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
 /// Parse Excel file in isolate and return first-sheet rows plus sheet name
-Map<String, dynamic> _parseExcelInIsolate(
-  Uint8List bytes,
-) {
+Map<String, dynamic> _parseExcelInIsolate(Uint8List bytes) {
   final excelFile = excel.Excel.decodeBytes(bytes);
   final List<Map<String, dynamic>> rows = [];
 
   // Process only the first sheet
-  final firstSheetName = excelFile.tables.keys.isEmpty ? null : excelFile.tables.keys.first;
+  final firstSheetName = excelFile.tables.keys.isEmpty
+      ? null
+      : excelFile.tables.keys.first;
   if (firstSheetName != null) {
     var sheet = excelFile.tables[firstSheetName];
     if (sheet != null) {
@@ -581,10 +611,7 @@ Map<String, dynamic> _parseExcelInIsolate(
     }
   }
 
-  return {
-    'sheetName': firstSheetName,
-    'rows': rows,
-  };
+  return {'sheetName': firstSheetName, 'rows': rows};
 }
 
 /// Helper to format DateTime for database storage
