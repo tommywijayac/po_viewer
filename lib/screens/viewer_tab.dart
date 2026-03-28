@@ -248,6 +248,102 @@ class _ViewerTabState extends State<ViewerTab> {
     await _loadCategoryOptions(vendor: selectedVendor);
   }
 
+  Future<void> _showVendorPicker() async {
+    if (vendorOptions.isEmpty) {
+      _showSnackBar('No vendor options available', type: SnackBarType.warning);
+      return;
+    }
+
+    String query = '';
+    final pickedVendor = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final normalizedQuery = query.trim().toLowerCase();
+            final filteredVendors = normalizedQuery.isEmpty
+                ? vendorOptions
+                : vendorOptions
+                      .where(
+                        (vendor) =>
+                            vendor.toLowerCase().contains(normalizedQuery),
+                      )
+                      .toList();
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.8,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      TextField(
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Find vendor',
+                          hintText: 'Type vendor name...',
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                        onChanged: (value) {
+                          setModalState(() {
+                            query = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: filteredVendors.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return ListTile(
+                                title: const Text('All vendors'),
+                                selected: selectedVendor == null,
+                                onTap: () => Navigator.of(context).pop(''),
+                              );
+                            }
+
+                            final vendor = filteredVendors[index - 1];
+                            return ListTile(
+                              title: Text(vendor),
+                              selected: selectedVendor == vendor,
+                              onTap: () => Navigator.of(context).pop(vendor),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || pickedVendor == null) return;
+
+    final normalizedSelection = pickedVendor.isEmpty ? null : pickedVendor;
+    if (normalizedSelection == selectedVendor) return;
+
+    setState(() {
+      selectedVendor = normalizedSelection;
+      vendorFilterController.text = normalizedSelection ?? '';
+      selectedCategory = null;
+      categoryFilterController.clear();
+    });
+
+    await _loadCategoryOptions(vendor: selectedVendor);
+  }
+
   Future<void> _clearFilters() async {
     setState(() {
       selectedVendor = null;
@@ -370,35 +466,15 @@ class _ViewerTabState extends State<ViewerTab> {
               child: Row(
                 children: [
                   Expanded(
-                    child: DropdownMenu<String>(
+                    child: TextField(
                       controller: vendorFilterController,
-                      width: double.infinity,
-                      menuHeight: 280,
-                      enableFilter: true,
-                      enableSearch: true,
-                      requestFocusOnTap: true,
-                      initialSelection: selectedVendor ?? '',
-                      label: const Text('Vendor'),
-                      hintText: 'All vendors',
-                      dropdownMenuEntries: [
-                        const DropdownMenuEntry<String>(value: '', label: ''),
-                        ...vendorOptions.map(
-                          (vendor) => DropdownMenuEntry<String>(
-                            value: vendor,
-                            label: vendor,
-                          ),
-                        ),
-                      ],
-                      onSelected: (value) async {
-                        setState(() {
-                          selectedVendor = (value == null || value.isEmpty)
-                              ? null
-                              : value;
-                          selectedCategory = null;
-                          categoryFilterController.clear();
-                        });
-                        await _loadCategoryOptions(vendor: selectedVendor);
-                      },
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Vendor',
+                        hintText: 'All vendors',
+                        suffixIcon: Icon(Icons.arrow_drop_down),
+                      ),
+                      onTap: _showVendorPicker,
                     ),
                   ),
                   const SizedBox(width: 8.0),
