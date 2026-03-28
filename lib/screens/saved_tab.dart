@@ -30,17 +30,14 @@ class _SavedTabState extends State<SavedTab> {
   void _showSnackBar(String message, {SnackBarType type = SnackBarType.info}) {
     if (mounted) {
       final color = switch (type) {
-        SnackBarType.info  => Colors.blue,
+        SnackBarType.info => Colors.blue,
         SnackBarType.warning => Colors.orange,
         SnackBarType.error => Colors.red,
       };
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: color,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
     }
   }
 
@@ -81,7 +78,10 @@ class _SavedTabState extends State<SavedTab> {
                 Navigator.of(context).pop();
                 _removeAll();
               },
-              child: const Text('Remove All', style: TextStyle(color: Colors.red)),
+              child: const Text(
+                'Remove All',
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
@@ -114,7 +114,10 @@ class _SavedTabState extends State<SavedTab> {
                   ),
                 )
               : GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12.0,
+                    vertical: 8.0,
+                  ),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 8.0,

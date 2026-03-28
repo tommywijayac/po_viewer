@@ -19,7 +19,8 @@ class ViewerTab extends StatefulWidget {
   State<ViewerTab> createState() => _ViewerTabState();
 }
 
-class _ViewerTabState extends State<ViewerTab> {
+class _ViewerTabState extends State<ViewerTab>
+    with AutomaticKeepAliveClientMixin<ViewerTab> {
   File? selectedFile;
   bool isLoading = false;
   final TextEditingController searchController = TextEditingController();
@@ -665,6 +666,7 @@ class _ViewerTabState extends State<ViewerTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: _dismissKeyboard,
@@ -728,6 +730,9 @@ class _ViewerTabState extends State<ViewerTab> {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
 /// Parse Excel file in isolate and return first-sheet rows plus sheet name
