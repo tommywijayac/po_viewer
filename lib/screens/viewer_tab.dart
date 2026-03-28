@@ -344,6 +344,101 @@ class _ViewerTabState extends State<ViewerTab> {
     await _loadCategoryOptions(vendor: selectedVendor);
   }
 
+  Future<void> _showCategoryPicker() async {
+    if (categoryOptions.isEmpty) {
+      _showSnackBar(
+        'No category options available',
+        type: SnackBarType.warning,
+      );
+      return;
+    }
+
+    String query = '';
+    final pickedCategory = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final normalizedQuery = query.trim().toLowerCase();
+            final filteredCategories = normalizedQuery.isEmpty
+                ? categoryOptions
+                : categoryOptions
+                      .where(
+                        (category) =>
+                            category.toLowerCase().contains(normalizedQuery),
+                      )
+                      .toList();
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.8,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      TextField(
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Find category',
+                          hintText: 'Type category name...',
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                        onChanged: (value) {
+                          setModalState(() {
+                            query = value;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: filteredCategories.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return ListTile(
+                                title: const Text('All categories'),
+                                selected: selectedCategory == null,
+                                onTap: () => Navigator.of(context).pop(''),
+                              );
+                            }
+
+                            final category = filteredCategories[index - 1];
+                            return ListTile(
+                              title: Text(category),
+                              selected: selectedCategory == category,
+                              onTap: () => Navigator.of(context).pop(category),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || pickedCategory == null) return;
+
+    final normalizedSelection = pickedCategory.isEmpty ? null : pickedCategory;
+    if (normalizedSelection == selectedCategory) return;
+
+    setState(() {
+      selectedCategory = normalizedSelection;
+      categoryFilterController.text = normalizedSelection ?? '';
+    });
+  }
+
   Future<void> _clearFilters() async {
     setState(() {
       selectedVendor = null;
@@ -479,32 +574,15 @@ class _ViewerTabState extends State<ViewerTab> {
                   ),
                   const SizedBox(width: 8.0),
                   Expanded(
-                    child: DropdownMenu<String>(
+                    child: TextField(
                       controller: categoryFilterController,
-                      width: double.infinity,
-                      menuHeight: 280,
-                      enableFilter: true,
-                      enableSearch: true,
-                      requestFocusOnTap: true,
-                      initialSelection: selectedCategory ?? '',
-                      label: const Text('Category'),
-                      hintText: 'All categories',
-                      dropdownMenuEntries: [
-                        const DropdownMenuEntry<String>(value: '', label: ''),
-                        ...categoryOptions.map(
-                          (category) => DropdownMenuEntry<String>(
-                            value: category,
-                            label: category,
-                          ),
-                        ),
-                      ],
-                      onSelected: (value) {
-                        setState(() {
-                          selectedCategory = (value == null || value.isEmpty)
-                              ? null
-                              : value;
-                        });
-                      },
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                        hintText: 'All categories',
+                        suffixIcon: Icon(Icons.arrow_drop_down),
+                      ),
+                      onTap: _showCategoryPicker,
                     ),
                   ),
                   const SizedBox(width: 8.0),
