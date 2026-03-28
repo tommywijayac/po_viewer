@@ -232,6 +232,7 @@ class _ViewerTabState extends State<ViewerTab> {
   Future<void> _loadCategoryOptions({String? vendor}) async {
     final categories = await _dbHelper.getDistinctCategories(vendor: vendor);
     if (!mounted) return;
+
     setState(() {
       categoryOptions = categories;
       if (selectedCategory != null &&
@@ -254,8 +255,6 @@ class _ViewerTabState extends State<ViewerTab> {
       vendorFilterController.clear();
       categoryFilterController.clear();
     });
-    await _loadCategoryOptions();
-    performSearch();
   }
 
   Future<void> saveSelectedItem() async {
@@ -356,11 +355,22 @@ class _ViewerTabState extends State<ViewerTab> {
             const SizedBox(height: 8.0),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Additional filters',
+                  style: Theme.of(context).textTheme.labelSmall,
+                  textAlign: TextAlign.left,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
                 children: [
                   Expanded(
                     child: DropdownMenu<String>(
-                      key: ValueKey(selectedVendor ?? 'all-vendors'),
                       controller: vendorFilterController,
                       width: double.infinity,
                       menuHeight: 280,
@@ -394,7 +404,6 @@ class _ViewerTabState extends State<ViewerTab> {
                   const SizedBox(width: 8.0),
                   Expanded(
                     child: DropdownMenu<String>(
-                      key: ValueKey(selectedCategory ?? 'all-categories'),
                       controller: categoryFilterController,
                       width: double.infinity,
                       menuHeight: 280,
@@ -443,7 +452,7 @@ class _ViewerTabState extends State<ViewerTab> {
                 label: const Text('Save Selected Item'),
               ),
             ),
-            const SizedBox(height: 12.0),
+            const SizedBox(height: 4.0),
             Expanded(
               child: filteredData.isEmpty
                   ? Center(
